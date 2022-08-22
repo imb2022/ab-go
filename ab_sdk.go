@@ -27,12 +27,12 @@ func UpdateScheme(abScheme *scheme.ABScheme) {
 	appABScheme = abScheme
 }
 
-func Split(abScheme *scheme.ABScheme, layerName, requestId string) (bucketNo int, experiment scheme.Experiment, err error) {
-	if abScheme == nil || len(abScheme.Layers) == 0 {
+func Split(layerName, requestId string) (bucketNo int, experiment scheme.Experiment, err error) {
+	if appABScheme == nil || len(appABScheme.Layers) == 0 {
 		err = errors.New("nil scheme or layers")
 		return
 	}
-	layers := abScheme.Layers
+	layers := appABScheme.Layers
 	if layer, ok := layers[layerName]; !ok {
 		err = errors.New("not exist layer for the scheme")
 		return
