@@ -2,6 +2,7 @@ package ab
 
 import (
 	"encoding/json"
+	"log"
 
 	"github.com/Shopify/sarama"
 	"github.com/xwi88/log4go"
@@ -16,7 +17,7 @@ var (
 	kafkaQuit      chan struct{}
 )
 
-func StartKafkaListener(cfg KafkaConsumer, appNameOrFlag string) (err error) {
+func startKafkaListener(cfg KafkaConsumer, appNameOrFlag string) (err error) {
 	config := sarama.NewConfig()
 	version, err := sarama.ParseKafkaVersion(cfg.Version)
 	if err != nil {
@@ -31,7 +32,10 @@ func StartKafkaListener(cfg KafkaConsumer, appNameOrFlag string) (err error) {
 		return err
 	}
 
-	kafkaPartition, err = kafkaListener.ConsumePartition(topic, 0, sarama.OffsetNewest)
+	if cfg.Initial == 0 {
+		cfg.Initial = sarama.OffsetNewest
+	}
+	kafkaPartition, err = kafkaListener.ConsumePartition(topic, 0, cfg.Initial)
 	if err != nil {
 		return err
 	}
@@ -42,11 +46,11 @@ func StartKafkaListener(cfg KafkaConsumer, appNameOrFlag string) (err error) {
 		}
 	}()
 	kafkaQuit = make(chan struct{}, 1)
-	go KafkaPartitionHandler(appNameOrFlag)
+	go kafkaPartitionHandler(appNameOrFlag)
 	return nil
 }
 
-func CloseKafkaListener() {
+func closeKafkaListener() {
 	kafkaQuit <- struct{}{}
 	if kafkaPartition != nil {
 		if err := kafkaPartition.Close(); err != nil {
@@ -60,7 +64,7 @@ func CloseKafkaListener() {
 	}
 }
 
-func KafkaPartitionHandler(appNameOrFlag string) {
+func kafkaPartitionHandler(appNameOrFlag string) {
 Loop:
 	for {
 		select {
@@ -68,11 +72,13 @@ Loop:
 			if ok && msg != nil && string(msg.Key) == appNameOrFlag {
 				newScheme := &scheme.ABScheme{}
 				err := json.Unmarshal(msg.Value, newScheme)
+				log.Printf("[kafkaListener] %s[%d][%d]: %+v", msg.Topic, msg.Partition, msg.Offset, newScheme)
+
 				if err != nil {
 					log4go.Error("[kafkaListener] %s[%d][%d], err: %v", msg.Topic, msg.Partition, msg.Offset, err)
 					return
 				}
-				log4go.Info("[kafkaListener] %s[%d][%d]: %v", msg.Topic, msg.Partition, msg.Offset, newScheme)
+				log4go.Info("[kafkaListener] %s[%d][%d]: %+v", msg.Topic, msg.Partition, msg.Offset, newScheme)
 				if newScheme != nil && len(newScheme.APP) > 0 && len(newScheme.Layers) > 0 {
 					UpdateScheme(newScheme)
 				}
