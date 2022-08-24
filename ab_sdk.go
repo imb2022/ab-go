@@ -9,6 +9,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/xwi88/log4go"
 	"github.com/xwi88/split"
 
 	"github.com/imb2022/ab-go/scheme"
@@ -37,13 +38,17 @@ func Split(layerName, requestId string) (bucketNo int, experiment scheme.Experim
 		err = errors.New("not exist layer for the scheme")
 		return
 	} else {
-		if len(layer.Buckets)%2 != 0 {
+		if len(layer.Buckets) < 2 || len(layer.Buckets)%2 != 0 {
 			err = errors.New(fmt.Sprintf("invalid buckets number in the layer %v", layerName))
 			return
 		}
 
 		bucketNo = splitMurmurHash(requestId, layerName, layer.ID)
 		index := searchExperimentIndexByBucket(layer.Buckets, bucketNo)
+		if index == -1 {
+			err = errors.New(fmt.Sprintf("missing bucket in the layer %v", layerName))
+			return
+		}
 		experiment = layer.Experiments[index]
 	}
 	return
@@ -65,13 +70,60 @@ func md5Str(str string) string {
 	return hex.EncodeToString(h.Sum(nil))
 }
 
-// limited bucket, direct for range deal
+// limited bucket, direct for range deal, -1 missing buckets
 func searchExperimentIndexByBucket(buckets []int, bucketNo int) (index int) {
-	for i := 0; i < len(buckets); i = i + 2 {
-		if bucketNo <= buckets[i+1] {
+	size := len(buckets)
+	if bucketNo < buckets[0] || bucketNo > buckets[size-1] {
+		// not over buckets lower
+		return -1
+	}
+
+	for i := 0; i < size; i = i + 2 {
+		if bucketNo >= buckets[i] && bucketNo <= buckets[i+1] {
 			return
 		}
 		index++
 	}
+
+	if index == size>>1 {
+		// over buckets upper
+		return -1
+	}
 	return
+}
+
+func Run(cfg Config) {
+	app := cfg.App
+	kfcCfg := cfg.Kafka
+	if kfcCfg.Enable {
+		err := startKafkaListener(kfcCfg, app)
+		if err != nil {
+			log4go.Error("[ab-go] start kafkaListener error: ", err)
+			return
+		}
+	}
+	mysqlCfg := cfg.MySql
+	if mysqlCfg.Enable {
+		err := initMySql(mysqlCfg)
+		if err != nil {
+			log4go.Error("[ab-go] start mysqlClient error: ", err)
+			return
+		}
+		loadABScheme(app)
+	}
+}
+
+func Close() error {
+	if kafkaListener != nil {
+		log4go.Info("[ab-go] close kafkaListener")
+		closeKafkaListener()
+	}
+
+	if mysqlClient != nil {
+		err := closeMySql()
+		if err != nil {
+			log4go.Error("[ab-go] close mysqlClient error: ", err)
+		}
+	}
+	return nil
 }
