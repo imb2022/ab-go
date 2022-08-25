@@ -94,14 +94,6 @@ func searchExperimentIndexByBucket(buckets []int, bucketNo int) (index int) {
 
 func Run(cfg Config) {
 	app := cfg.App
-	kfcCfg := cfg.Kafka
-	if kfcCfg.Enable {
-		err := startKafkaListener(kfcCfg, app)
-		if err != nil {
-			log4go.Error("[ab-go] start kafkaListener error: ", err)
-			return
-		}
-	}
 	mysqlCfg := cfg.MySql
 	if mysqlCfg.Enable {
 		err := initMySql(mysqlCfg)
@@ -111,6 +103,16 @@ func Run(cfg Config) {
 		}
 		loadABScheme(app)
 	}
+
+	kfcCfg := cfg.Kafka
+	if kfcCfg.Enable {
+		err := startKafkaListener(kfcCfg, app)
+		if err != nil {
+			log4go.Error("[ab-go] start kafkaListener error: ", err)
+			return
+		}
+	}
+
 }
 
 func Close() error {
