@@ -18,7 +18,7 @@ import (
 var appABScheme *scheme.ABScheme
 var lock sync.RWMutex
 
-func UpdateScheme(abScheme *scheme.ABScheme) {
+func updateScheme(abScheme *scheme.ABScheme) {
 	if abScheme == nil {
 		return
 	}

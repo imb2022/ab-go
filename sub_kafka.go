@@ -80,7 +80,7 @@ Loop:
 				}
 				log4go.Info("[kafkaListener] %s[%d][%d]: %+v", msg.Topic, msg.Partition, msg.Offset, newScheme)
 				if newScheme != nil && len(newScheme.APP) > 0 && len(newScheme.Layers) > 0 {
-					UpdateScheme(newScheme)
+					updateScheme(newScheme)
 				}
 			} else {
 				log4go.Error("[kafkaListener] consume error: %v", msg)
