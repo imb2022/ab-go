@@ -10,7 +10,7 @@ import (
 	"github.com/imb2022/ab-go/scheme"
 )
 
-func Test_SDK_Kafka(t *testing.T) {
+func Test_SDK(t *testing.T) {
 	var enableMysql bool
 	var enableKafka bool
 	var testWithNormalRun bool // true run test with Run; else run test with init kfk each time
