@@ -28,25 +28,25 @@ func updateScheme(abScheme *scheme.ABScheme) {
 	appABScheme = abScheme
 }
 
-func Split(layerName, requestId string) (bucketNo int, experiment scheme.Experiment, err error) {
+func Split(layerFlag, requestId string) (bucketNo int, experiment scheme.Experiment, err error) {
 	if appABScheme == nil || len(appABScheme.Layers) == 0 {
 		err = errors.New("nil scheme or layers")
 		return
 	}
 	layers := appABScheme.Layers
-	if layer, ok := layers[layerName]; !ok {
+	if layer, ok := layers[layerFlag]; !ok {
 		err = errors.New("not exist layer for the scheme")
 		return
 	} else {
 		if len(layer.Buckets) < 2 || len(layer.Buckets)%2 != 0 {
-			err = errors.New(fmt.Sprintf("invalid buckets number in the layer %v", layerName))
+			err = errors.New(fmt.Sprintf("invalid buckets number in the layer %v", layerFlag))
 			return
 		}
 
-		bucketNo = splitMurmurHash(requestId, layerName, layer.ID)
+		bucketNo = splitMurmurHash(requestId, layerFlag, layer.ID)
 		index := searchExperimentIndexByBucket(layer.Buckets, bucketNo)
 		if index == -1 {
-			err = errors.New(fmt.Sprintf("missing bucket in the layer %v", layerName))
+			err = errors.New(fmt.Sprintf("missing bucket in the layer %v", layerFlag))
 			return
 		}
 		experiment = layer.Experiments[index]
@@ -54,10 +54,10 @@ func Split(layerName, requestId string) (bucketNo int, experiment scheme.Experim
 	return
 }
 
-func splitMurmurHash(requestId, layerName string, layerId int64) int {
+func splitMurmurHash(requestId, layerFlag string, layerId int64) int {
 	hashStr := strings.Builder{}
 	hashStr.WriteString(requestId)
-	hashStr.WriteString(layerName)
+	hashStr.WriteString(layerFlag)
 	hashStr.WriteString(strconv.FormatInt(layerId, 10))
 
 	ds := hashStr.String() + hex.EncodeToString([]byte(md5Str(hashStr.String())))

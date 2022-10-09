@@ -1,8 +1,8 @@
 package scheme
 
 type ABScheme struct {
-	APP    string            `json:"app"`
-	Layers map[string]*Layer `json:"layers"`
+	APP    string            `json:"app"`    // value: app_flag
+	Layers map[string]*Layer `json:"layers"` // key: layer_flag
 }
 
 type Layer struct {
