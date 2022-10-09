@@ -66,39 +66,39 @@ func Test_SDK(t *testing.T) {
 	times := 5
 	for i := 0; i < times; i++ {
 		requestId := fmt.Sprintf("1234567890%v", i)
-		for appNameOrFlag, layerNames := range appNameLayerMapping {
+		for appNameOrFlag, layerFlags := range appNameLayerMapping {
 			if testWithNormalRun {
-				splitWithRun(t, i, cfg, layerNames, appNameOrFlag, requestId)
+				splitWithRun(t, i, cfg, layerFlags, appNameOrFlag, requestId)
 			} else {
-				splitWithKafka(t, i, cfg, layerNames, appNameOrFlag, requestId)
+				splitWithKafka(t, i, cfg, layerFlags, appNameOrFlag, requestId)
 			}
 		}
 	}
 }
 
-func splitWithKafka(t *testing.T, i int, cfg Config, layerNames []string, appNameOrFlag, requestId string) {
+func splitWithKafka(t *testing.T, i int, cfg Config, layerFlags []string, appNameOrFlag, requestId string) {
 	cfg.App = appNameOrFlag
 
-	for _, layerName := range layerNames {
-		bucketNo, experiment, err := consumerAndSplitWithKafka(t, cfg.Kafka, appNameOrFlag, layerName, requestId)
+	for _, layerFlag := range layerFlags {
+		bucketNo, experiment, err := consumerAndSplitWithKafka(t, cfg.Kafka, appNameOrFlag, layerFlag, requestId)
 		if err == nil {
 			t.Logf("[splitWithKafka] index[%v], app[%v], layer[%v], requestId[%v], bucket[%v], experiment: %+v",
-				i, appNameOrFlag, layerName, requestId, bucketNo, experiment)
+				i, appNameOrFlag, layerFlag, requestId, bucketNo, experiment)
 		}
 	}
 }
 
-func splitWithRun(t *testing.T, i int, cfg Config, layerNames []string, appNameOrFlag, requestId string) {
+func splitWithRun(t *testing.T, i int, cfg Config, layerFlags []string, appNameOrFlag, requestId string) {
 	cfg.App = appNameOrFlag
 	Run(cfg)
 	time.Sleep(time.Millisecond * 150)
 
-	for _, layerName := range layerNames {
-		bucketNo, experiment, err := consumerAndSplit(layerName, requestId)
-		// bucketNo, experiment, err := consumerAndSplitWithKafka(t, cfg.Kafka, appNameOrFlag, layerName, requestId)
+	for _, layerFlag := range layerFlags {
+		bucketNo, experiment, err := consumerAndSplit(layerFlag, requestId)
+		// bucketNo, experiment, err := consumerAndSplitWithKafka(t, cfg.Kafka, appNameOrFlag, layerFlag, requestId)
 		if err == nil {
 			t.Logf("[split] index[%v], app[%v], layer[%v], requestId[%v], bucket[%v], experiment: %+v",
-				i, appNameOrFlag, layerName, requestId, bucketNo, experiment)
+				i, appNameOrFlag, layerFlag, requestId, bucketNo, experiment)
 		}
 	}
 
@@ -107,7 +107,7 @@ func splitWithRun(t *testing.T, i int, cfg Config, layerNames []string, appNameO
 	}
 }
 
-func consumerAndSplitWithKafka(t *testing.T, cfg KafkaConsumer, appNameOrFlag, layerName, requestId string) (bucketNo int, experiment scheme.Experiment, err error) {
+func consumerAndSplitWithKafka(t *testing.T, cfg KafkaConsumer, appNameOrFlag, layerFlag, requestId string) (bucketNo int, experiment scheme.Experiment, err error) {
 	err = startKafkaListener(cfg, appNameOrFlag)
 	if err != nil {
 		t.Error(err)
@@ -116,15 +116,15 @@ func consumerAndSplitWithKafka(t *testing.T, cfg KafkaConsumer, appNameOrFlag, l
 	defer closeKafkaListener()
 	time.Sleep(time.Millisecond * 150)
 
-	bucketNo, experiment, err = Split(layerName, requestId)
+	bucketNo, experiment, err = Split(layerFlag, requestId)
 	if err != nil {
 		return
 	}
 	return
 }
 
-func consumerAndSplit(layerName, requestId string) (bucketNo int, experiment scheme.Experiment, err error) {
-	bucketNo, experiment, err = Split(layerName, requestId)
+func consumerAndSplit(layerFlag, requestId string) (bucketNo int, experiment scheme.Experiment, err error) {
+	bucketNo, experiment, err = Split(layerFlag, requestId)
 	if err != nil {
 		return
 	}
